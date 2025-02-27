@@ -50,20 +50,29 @@ async function chatLoop() {
                 const messagesCollection = await channel.messages.fetch({ limit: 100 });
                 // Sort messages from oldest to newest
                 const messages = messagesCollection.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+                
+                // Filter out messages sent by the self-bot; keep only user messages
+                const userMessages = messages.filter(msg => msg.author.id !== client.user.id);
+                if (userMessages.size === 0) {
+                    console.log("No user messages found. Skipping this cycle.");
+                    await delay(config.delayMs);
+                    continue;
+                }
+                
+                // Select one random user message
+                const randomIndex = Math.floor(Math.random() * userMessages.size);
+                const selectedMessage = Array.from(userMessages.values())[randomIndex];
 
-                // Build the prompt based on the messages
-                let prompt = "";
-                messages.forEach(msg => {
-                    prompt += `${msg.content}\n`;
-                });
-
-                // Send the prompt to OpenAI to generate a response
+                // Build the prompt using the selected user message's content
+                const prompt = selectedMessage.content;
+                
+                // Send the prompt to OpenAI to generate a question reply
                 const completion = await openai.chat.completions.create({
                     model: "gpt-4o-mini",
                     messages: [
                         { 
                             role: "system", 
-                            content: "You are a friendly, cheerful, and humorous chatbot that always responds briefly (no more than 10 words). Based on the current chat context, provide a meaningful next chat message." 
+                            content: "You are a friendly, cheerful, and humorous chatbot that always responds with a question. Based on the user's message below, generate a relevant question as a reply. If the conversation is about a project, only discuss the fogochain project." 
                         },
                         { role: "user", content: prompt }
                     ],
@@ -74,14 +83,15 @@ async function chatLoop() {
                 const botResponse = completion.choices[0].message.content.trim();
                 if (!botResponse) {
                     console.error("No response received from OpenAI!");
-                    return;
+                    await delay(config.delayMs);
+                    continue;
                 }
-                // Send the response to the Discord channel
-                await channel.send(botResponse);
+                // Reply directly to the selected user message
+                await selectedMessage.reply(botResponse);
 
                 // Increment the counter and log the result
                 chatCount++;
-                console.log(`Sent message #${chatCount}: ${botResponse}`);
+                console.log(`Sent message #${chatCount} in reply to ${selectedMessage.author.username}: ${botResponse}`);
             } catch (error) {
                 console.error("An error occurred in the chat loop:", error);
             }
