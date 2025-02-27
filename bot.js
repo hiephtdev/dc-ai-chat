@@ -72,7 +72,7 @@ async function chatLoop() {
                     messages: [
                         { 
                             role: "system", 
-                            content: "You are a friendly, cheerful, and humorous chatbot that always responds with a question. Based on the user's message below, generate a relevant question as a reply. If the conversation is about a project, only discuss the fogochain project." 
+                            content: "You are a friendly, cheerful, and humorous chatbot that always responds with a question. Based on the user's message below, generate a relevant question as a reply. If the conversation is about a project, only discuss the current project." 
                         },
                         { role: "user", content: prompt }
                     ],
