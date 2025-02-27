@@ -1,0 +1,7 @@
+{
+    "userToken": "YOUR_DISCORD_USER_TOKEN",
+    "openaiApiKey": "YOUR_OPENAI_API_KEY",
+    "guildId": "DISCORD_GUILD_ID",
+    "channelId": "DISCORD_CHANNEL_ID",
+    "delayMs": 5000
+}
