@@ -7,7 +7,7 @@ This project is a self-bot for Discord that uses the OpenAI API to generate chat
 ## Features
 
 - Retrieves the 50 most recent messages from a specified channel.
-- Generates a chat response using the OpenAI API (gpt-3.5-turbo).
+- Generates a chat response using the OpenAI API (gpt-4o-mini).
 - Sends the generated response to the Discord channel.
 - Configurable delay between each sent message.
 - Counts and logs the number of messages sent.

@@ -1,95 +1,98 @@
-// Import các thư viện cần thiết
+// Import required libraries
 const Discord = require('discord.js-selfbot-v13');
 const { OpenAI } = require('openai');
 const fs = require('fs');
 
-// Đọc file cấu hình (config.json)
+// Read the configuration file (config.json)
 const config = JSON.parse(fs.readFileSync('./config.json', 'utf-8'));
 
-// Cấu hình OpenAI
+// Configure OpenAI
 const openaiConfig = {
     apiKey: config.openaiApiKey,
 };
 const openai = new OpenAI(openaiConfig);
 
-// Tạo client cho self-bot
+// Create the client for the self-bot
 const client = new Discord.Client();
 
-// Biến đếm số câu chat đã gửi
+// Counter for the number of chat messages sent
 let chatCount = 0;
 
-// Hàm delay (trả về Promise)
+// Delay function (returns a Promise)
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Khi đăng nhập thành công
+// When successfully logged in
 client.on('ready', async () => {
-    console.log(`Đã đăng nhập với tài khoản: ${client.user.tag}`);
-    // Bắt đầu vòng lặp chat
+    console.log(`Logged in as: ${client.user.tag}`);
+    // Start the chat loop
     chatLoop();
 });
 
-// Hàm thực hiện vòng lặp chat
+// Function to perform the chat loop
 async function chatLoop() {
     try {
-        // Lấy guild (server) theo ID từ file cấu hình
+        // Fetch the guild (server) using the ID from the configuration file
         const guild = await client.guilds.fetch(config.guildId);
         if (!guild) {
-            console.error("Không tìm thấy server (guild)!");
+            console.error("Guild (server) not found!");
             return;
         }
-        // Lấy đối tượng kênh từ guild
+        // Fetch the channel object from the guild
         const channel = await guild.channels.fetch(config.channelId);
         if (!channel) {
-            console.error("Không tìm thấy kênh chat!");
+            console.error("Chat channel not found!");
             return;
         }
 
         while (true) {
             try {
-                // Lấy 50 tin nhắn mới nhất từ kênh
+                // Fetch the most recent 100 messages from the channel
                 const messagesCollection = await channel.messages.fetch({ limit: 100 });
-                // Sắp xếp theo thời gian từ cũ đến mới
+                // Sort messages from oldest to newest
                 const messages = messagesCollection.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
-                // Xây dựng prompt dựa trên các tin nhắn
+                // Build the prompt based on the messages
                 let prompt = "";
                 messages.forEach(msg => {
                     prompt += `${msg.content}\n`;
                 });
 
-                // Gửi prompt đến OpenAI để tạo phản hồi
+                // Send the prompt to OpenAI to generate a response
                 const completion = await openai.chat.completions.create({
                     model: "gpt-4o-mini",
                     messages: [
-                        { role: "system", content: "Bạn là một bot trò chuyện thân thiện, vui vẻ, hài hước và luôn trò chuyện ngắn gọn không quá 10.\nDựa vào ngữ cảnh hiện tại của đoạn chat cho tôi 1 câu chat tiếp theo phù hợp đủ nghĩa" },
+                        { 
+                            role: "system", 
+                            content: "You are a friendly, cheerful, and humorous chatbot that always responds briefly (no more than 10 words). Based on the current chat context, provide a meaningful next chat message." 
+                        },
                         { role: "user", content: prompt }
                     ],
                     max_tokens: 150
                 });
 
-                // Lấy nội dung phản hồi
+                // Retrieve the response content
                 const botResponse = completion.choices[0].message.content.trim();
                 if (!botResponse) {
-                    console.error("Không có phản hồi từ OpenAI!");
+                    console.error("No response received from OpenAI!");
                     return;
                 }
-                // Gửi phản hồi lên kênh Discord
+                // Send the response to the Discord channel
                 await channel.send(botResponse);
 
-                // Tăng bộ đếm và log kết quả
+                // Increment the counter and log the result
                 chatCount++;
-                console.log(`Đã gửi tin nhắn thứ ${chatCount}: ${botResponse}`);
+                console.log(`Sent message #${chatCount}: ${botResponse}`);
             } catch (error) {
-                console.error("Có lỗi xảy ra trong vòng lặp chat:", error);
+                console.error("An error occurred in the chat loop:", error);
             }
 
-            // Delay theo khoảng thời gian cấu hình trước khi lặp lại
+            // Delay for the configured time before repeating
             await delay(config.delayMs);
         }
     } catch (error) {
-        console.error("Có lỗi xảy ra khi fetch guild hoặc channel:", error);
+        console.error("An error occurred while fetching guild or channel:", error);
     }
 }
 
-// Đăng nhập với token tài khoản người dùng (self-bot)
+// Log in using the user account token (self-bot)
 client.login(config.userToken);
